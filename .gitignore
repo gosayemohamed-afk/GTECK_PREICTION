@@ -1,0 +1,16 @@
+# Local Python environment and cache
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+
+# Local editor and operating-system files
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Do not publish the duplicate/bad season CSV
+data/*_bad.csv
+
+# Streamlit secrets
+.streamlit/secrets.toml
