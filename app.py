@@ -1,4 +1,5 @@
 import html
+import importlib
 
 import pandas as pd
 import streamlit as st
@@ -125,8 +126,9 @@ st.markdown(
 
 @st.cache_resource
 def load_predictions():
-    # Imports the existing script once and reuses its generated predictions.
+    # Reload the model script so deployments use the latest fixtures and code.
     import football_prediction
+    importlib.reload(football_prediction)
 
     return football_prediction.future_data.copy().reset_index(drop=True)
 
