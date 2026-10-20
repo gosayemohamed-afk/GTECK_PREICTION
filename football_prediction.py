@@ -494,10 +494,34 @@ for _, game in history_matches.iterrows():
     )
 
 # Load the upcoming games.
-fixtures_path = data_folder / "fixtures.csv"
-fixtures = pd.read_csv(fixtures_path, encoding="utf-8-sig")
+fixtures_path = data_folder / "epl_full_fixtures.csv"
+raw_fixtures = pd.read_csv(fixtures_path, encoding="utf-8-sig")
+
+# FixtureDownload leaves the result blank for matches that have not been played.
+# Accept blank results and a dash so either CSV representation works.
+result_text = raw_fixtures["Result"].fillna("").astype(str).str.strip()
+upcoming = result_text.isin(["", "-"])
+fixtures = raw_fixtures.loc[
+    upcoming, ["Date", "Home Team", "Away Team"]
+].copy()
+
+fixtures = fixtures.rename(
+    columns={"Home Team": "HomeTeam", "Away Team": "AwayTeam"}
+)
 fixtures["Date"] = pd.to_datetime(
-    fixtures["Date"], format="%Y-%m-%d", errors="coerce"
+    fixtures["Date"], dayfirst=True, errors="coerce"
+)
+fixtures = fixtures.dropna(subset=["Date"])
+fixtures = fixtures[
+    fixtures["Date"].dt.normalize() >= pd.Timestamp.today().normalize()
+].copy()
+
+# Match the names used in your historical data.
+fixtures["HomeTeam"] = fixtures["HomeTeam"].replace(
+    {"Man Utd": "Man United", "Spurs": "Tottenham"}
+)
+fixtures["AwayTeam"] = fixtures["AwayTeam"].replace(
+    {"Man Utd": "Man United", "Spurs": "Tottenham"}
 )
 
 # Build features using only matches played before each fixture date.
@@ -573,7 +597,9 @@ from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
 score_targets = ["HomeGoals", "AwayGoals", "HomeCorners", "AwayCorners"]
 missing_targets = [col for col in score_targets if col not in model_data.columns]
 
-if missing_targets:
+if future_data.empty:
+    print("Skipping score and market predictions because there are no upcoming fixtures.")
+elif missing_targets:
     print("Could not find these target columns:", missing_targets)
     print("Available columns:", model_data.columns.tolist())
 else:
